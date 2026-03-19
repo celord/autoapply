@@ -111,3 +111,7 @@ Thumbs.db
 jobs_linkedin_*.csv
 chromedriver*
 debug.log 
+# Security
+credentials.json
+serviceAccountKey.json
+.claude/
