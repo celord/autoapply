@@ -19,7 +19,7 @@ An automated job search and extraction tool that streamlines the job hunting pro
 | Browser Automation | Playwright         |
 | HTML Parsing       | (built-in, minimal)|
 | Logging            | Loguru             |
-| Configuration      | JSON, python-dotenv |
+| Configuration      | PyYAML, python-dotenv |
 | Dependency Manager | [uv](https://astral.sh/uv/) + pyproject.toml |
 
 ## LinkedIn Support Only
@@ -66,22 +66,13 @@ uv run -- python -m playwright install
 
 ### 5. Configure Settings
 
-Edit `config/config.json` with your job search preferences, for example:
-```json
-{
-  "search": {
-    "keywords": "Software Engineer",
-    "location": "Remote",
-    "experience_level": "Mid Level",
-    "job_type": "Full-time",
-    "date_posted": "past_week"
-  },
-  "platforms": {
-    "linkedin": {
-      "enabled": true
-    }
-  }
-}
+Edit `config/config.yaml` with your job search preferences, for example:
+```yaml
+search:
+  job_title: "Software Engineer"
+  location: "Remote"
+  platforms:
+    - linkedin
 ```
 
 #### LinkedIn Automation: Using the li_at Cookie
@@ -117,7 +108,7 @@ This will start the automated LinkedIn job search tool according to your setting
 ```
 autoapply/
 ├── config/
-│   └── config.json           # Search configuration
+│   └── config.yaml           # Search configuration
 ├── src/
 │   ├── main.py               # Application entry point
 │   └── platforms/

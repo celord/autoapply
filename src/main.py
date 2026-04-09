@@ -8,7 +8,7 @@ import sys
 import asyncio
 from pathlib import Path
 from datetime import datetime
-import json
+import yaml
 from dotenv import load_dotenv
 from loguru import logger
 import pandas as pd
@@ -20,13 +20,13 @@ from autoapply.platforms.indeed import IndeedPlatform
 from autoapply.platforms.glassdoor import GlassdoorPlatform
 
 PROJECT_ROOT = Path(__file__).parent.parent
-CONFIG_PATH = PROJECT_ROOT / "config" / "config.json"
+CONFIG_PATH = PROJECT_ROOT / "config" / "config.yaml"
 ENV_PATH = PROJECT_ROOT / ".env"
 
 
 def load_config():
     with open(CONFIG_PATH, "r") as f:
-        return json.load(f)
+        return yaml.safe_load(f)
 
 
 def setup_logging(config):
