@@ -15,7 +15,7 @@ class ConfigLoader:
         Initialize the configuration loader.
 
         Args:
-            config_path (Path): Path to the YAML configuration file
+            config_path (Path): Path to the JSON configuration file
         """
         self.config_path = config_path
         self.config = self._load_config()
