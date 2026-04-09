@@ -1,10 +1,2 @@
-pytest==8.0.0
-pytest-asyncio==0.23.6
-beautifulsoup4==4.12.2
-python-dotenv==1.0.0
-loguru==0.7.2
-requests==2.31.0
-fake-useragent==1.4.0
-pytest-cov==4.1.0
-playwright>=1.42.0
-pandas
+# Deprecated: This project is managed by pyproject.toml and uv
+# Kept for reference/migration only.
