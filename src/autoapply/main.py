@@ -21,6 +21,7 @@ from playwright.async_api import async_playwright
 import asyncio
 from autoapply.utils.config_loader import ConfigLoader
 from autoapply.utils.logger import setup_logger
+from autoapply.utils.csv_export import jobs_to_csv
 from autoapply.platforms.linkedin import LinkedInPlatform
 from autoapply.platforms.indeed import IndeedPlatform
 from autoapply.platforms.glassdoor import GlassdoorPlatform
@@ -124,22 +125,20 @@ async def main():
                 )
                 logger.info(f"Found {len(jobs)} jobs on LinkedIn")
                 if jobs:
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    csv_path = f"jobs_linkedin_{timestamp}.csv"
                     try:
-                        import pandas as pd
-
-                        df = pd.DataFrame(jobs)
-                        df.to_csv(csv_path, index=False)
+                        csv_path = jobs_to_csv(jobs, filename_prefix="jobs")
                         logger.info(f"Saved {len(jobs)} jobs to {csv_path}")
                     except Exception as e:
                         logger.error(f"Error saving jobs to CSV: {e}")
+
                     for job in jobs:
                         logger.info("---")
-                        logger.info(f"Title: {job.get('title', 'N/A')}")
-                        logger.info(f"Company: {job.get('company', 'N/A')}")
-                        logger.info(f"Location: {job.get('location', 'N/A')}")
-                        logger.info(f"Link: {job.get('link', 'N/A')}")
+                        logger.info(f"Title: {job.job_title}")
+                        logger.info(f"Company: {job.company_name}")
+                        logger.info(f"Type: {job.job_type or 'Not specified'}")
+                        logger.info(f"Posted: {job.posted_date or 'Not specified'}")
+                        logger.info(f"Link: {job.link or 'N/A'}")
+
                     if config["application"]["apply_active"]:
                         try:
                             await linkedin.apply_to_jobs(jobs)

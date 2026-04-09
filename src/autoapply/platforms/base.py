@@ -7,6 +7,7 @@ from typing import Dict, Any, List
 from loguru import logger
 import asyncio
 import random
+from autoapply.models import JobPosting
 
 
 class BasePlatform(ABC):
@@ -31,7 +32,7 @@ class BasePlatform(ABC):
     @abstractmethod
     async def search_jobs(
         self, query: str, location: str, **kwargs
-    ) -> List[Dict[str, Any]]:
+    ) -> List[JobPosting]:
         """
         Asynchronously search for jobs on the platform.
 
@@ -39,17 +40,17 @@ class BasePlatform(ABC):
             query (str): Job search query/keywords
             location (str): Job location
         Returns:
-            List[Dict[str, Any]]: List of job postings info
+            List[JobPosting]: List of validated job postings
         """
         pass
 
     @abstractmethod
-    async def apply_to_jobs(self, jobs: List[Dict[str, Any]]) -> int:
+    async def apply_to_jobs(self, jobs: List[JobPosting]) -> int:
         """
         Asynchronously apply to a list of jobs.
 
         Args:
-            jobs (List[Dict[str, Any]]): List of job posting information
+            jobs (List[JobPosting]): List of job posting information
         Returns:
             int: Number of successful job applications
         """

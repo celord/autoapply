@@ -16,13 +16,13 @@ except ModuleNotFoundError:
     import tomli as tomllib
 from dotenv import load_dotenv
 from loguru import logger
-import pandas as pd
 import nodriver as uc
 import asyncio
 from playwright.async_api import async_playwright, Playwright
 from autoapply.platforms.linkedin import LinkedInPlatform
 from autoapply.platforms.indeed import IndeedPlatform
 from autoapply.platforms.glassdoor import GlassdoorPlatform
+from autoapply.utils.csv_export import jobs_to_csv
 
 PROJECT_ROOT = Path(__file__).parent.parent
 CONFIG_PATH = PROJECT_ROOT / "config" / "config.toml"
@@ -47,14 +47,15 @@ def setup_logging(config):
 
 
 def save_jobs_csv(jobs, prefix):
+    """Save JobPosting models to CSV file."""
     if not jobs:
         return None
-    df = pd.DataFrame(jobs)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = f"jobs_{prefix}_{timestamp}.csv"
-    df.to_csv(path, index=False)
-    logger.info(f"Saved {len(jobs)} jobs to {path}")
-    return path
+    try:
+        path = jobs_to_csv(jobs, filename_prefix=f"jobs_{prefix}")
+        return path
+    except Exception as e:
+        logger.error(f"Error saving {prefix} jobs to CSV: {e}")
+        return None
 
 
 async def run_platform(platform_class, config, tab, name):

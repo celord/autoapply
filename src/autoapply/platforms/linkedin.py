@@ -1,4 +1,6 @@
 from autoapply.platforms.base import BasePlatform
+from autoapply.models import JobPosting
+from autoapply.utils.job_converter import convert_linkedin_jobs
 from typing import List, Dict, Any
 from loguru import logger
 import asyncio
@@ -50,7 +52,8 @@ class LinkedInPlatform(BasePlatform):
 
     async def search_jobs(
         self, query: str, location: str, **kwargs
-    ) -> List[Dict[str, Any]]:
+    ) -> List[JobPosting]:
+        """Search for jobs on LinkedIn and return Pydantic models."""
         # Extract params from config (use defaults if not provided)
         cfg = self.config.get("platforms", {}).get("linkedin", {})
         query = cfg.get("query", "python")
@@ -81,7 +84,7 @@ class LinkedInPlatform(BasePlatform):
             logger.error("No <li> elements found in the primary result list!")
             return []
         max_jobs = min(2, li_count)
-        results = []
+        raw_results = []
         for idx in range(max_jobs):
             li = list_locator.locator("li").nth(idx)
             try:
@@ -152,7 +155,7 @@ class LinkedInPlatform(BasePlatform):
                 if detail_area:
                     main = await detail_area.inner_text()
                     logger.info(f"Job {idx + 1} MAIN CONTENT:\n{main[:800]}\n---")
-                    results.append(
+                    raw_results.append(
                         {
                             "title": (title or "").strip(),
                             "company": (company or "").strip(),
@@ -164,11 +167,21 @@ class LinkedInPlatform(BasePlatform):
                     logger.warning(f"No detail area found for job #{idx + 1}.")
             except Exception as exc:
                 logger.warning(f"Could not process li #{idx + 1}: {exc}")
-        return results
 
-    async def apply_to_jobs(self, jobs: List[Dict[str, Any]]) -> int:
+        # Convert raw results to Pydantic models
+        validated_jobs = convert_linkedin_jobs(raw_results)
+        logger.info(
+            f"Converted {len(raw_results)} raw jobs to {len(validated_jobs)} validated JobPosting models"
+        )
+        return validated_jobs
+
+    async def apply_to_jobs(self, jobs: List[JobPosting]) -> int:
         """
         Async: Apply to jobs on LinkedIn, handling Easy Apply where possible.
+
+        Args:
+            jobs: List of JobPosting Pydantic models
+
         Returns:
             int: Number of successful job applications
         """

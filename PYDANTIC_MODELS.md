@@ -136,9 +136,37 @@ After scraping jobs, convert them before saving:
 raw_jobs = await scrape_jobs()  # Returns List[Dict]
 validated_jobs = convert_jobs_by_platform("linkedin", raw_jobs)
 
-# Now use validated_jobs for saving/filtering
+# Now use validated_jobs - they're Pydantic models
 return validated_jobs
 ```
+
+All platform scrapers now return `List[JobPosting]` instead of raw dictionaries:
+
+```python
+linkedin = LinkedInPlatform(page, config)
+jobs = await linkedin.search_jobs("python", "Remote")  # Returns List[JobPosting]
+
+# Export to CSV
+from autoapply.utils.csv_export import jobs_to_csv
+csv_file = jobs_to_csv(jobs, output_path="output", filename_prefix="jobs")
+```
+
+## CSV Export
+
+Export jobs to CSV files with proper escaping:
+
+```python
+from autoapply.utils.csv_export import jobs_to_csv, results_to_csv
+
+# Export single platform's jobs
+csv_path = jobs_to_csv(linkedin_jobs, filename_prefix="linkedin_jobs")
+
+# Export multiple platforms
+csv_files = results_to_csv(aggregated_results, output_path="export")
+# Returns: {"linkedin": "path/to/jobs_linkedin_...csv", "indeed": "path/to/jobs_indeed_...csv"}
+```
+
+CSV columns: `company_name`, `job_title`, `job_type`, `posted_date`, `platform`, `link`, `description`
 
 ## File Structure
 
