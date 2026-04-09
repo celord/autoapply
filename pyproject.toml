@@ -19,6 +19,7 @@ dependencies = [
   "fake-useragent==1.4.0",
   "pandas",
   "playwright>=1.42.0",
+  "pydantic>=2.0.0",
   "tomli>=1.2.0;python_version<'3.11'",
 ]
 

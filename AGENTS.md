@@ -37,6 +37,7 @@
   - `src/autoapply/main.py` — current entry point, uses `AutoJobFinder` class and `playwright`
   - Verify which is being imported/used in your changes
 - **Plugins**: Each platform (`LinkedIn`, `Indeed`, `Glassdoor`) is in `src/autoapply/platforms/PLATFORM.py` with shared `base.py` interface
+- **Pydantic models**: Job postings are validated using `JobPosting` model in `src/autoapply/models.py`; use `job_converter.py` utilities to convert raw platform data
 - **Config drives everything** — platform selection, search parameters, delays, and logging all come from TOML; never hardcode these
 - **Async execution**: Playwright uses async (`async_playlist` context manager); tasks like `search_jobs()` and `apply_to_jobs()` are async
 - **TOML is read-only** via standard library — `tomllib.load()` only. Config edits must be done directly in `config.toml` or use external tools
