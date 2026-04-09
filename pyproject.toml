@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoapply"
+version = "0.1.0"
+description = "Automated job search and application tool."
+authors = [
+  { name = "AutoJobFinder Team", email = "noreply@example.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "nodriver",
+  "beautifulsoup4==4.12.2",
+  "python-dotenv==1.0.0",
+  "loguru==0.7.2",
+  "requests==2.31.0",
+  "fake-useragent==1.4.0",
+  "pandas"
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest==8.0.0",
+  "pytest-cov==4.1.0",
+  "pytest-asyncio==0.23.6"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["autoapply"]
+
+[tool.pytest.ini_options]
+pythonpath = "src"

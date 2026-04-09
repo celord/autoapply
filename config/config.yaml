@@ -1,7 +1,7 @@
 # Job Search Configuration
 search:
   keywords: "Python Developer"
-  location: "New York"
+  location: "Costa Rica"
   experience_level: "Entry Level"
   job_type: "Full-time"
   date_posted: "past_week"
@@ -10,19 +10,24 @@ search:
 application:
   apply_active: false  # Set to True to enable auto-apply
   max_applications_per_day: 50
-  resume_path: "resumes/resume.pdf"
-  cover_letter_path: "resumes/cover_letter.pdf"
+  resume_path: "resumes/Cesar_Garcia_Resume.pdf"
+  # cover_letter_path: "resumes/Cesar_Garcia_Resume.pdf"
 
 # Platform Settings
 platforms:
   linkedin:
     enabled: true
     search_limit: 100
+    query: "python"
+    location: ""
+    geo_id: "101739942"      # location filter (from geoId in your LinkedIn search URL)
+    date_posted: "1"         # 1 = past 24 hours (f_TPR=r86400)
+    work_type: "2"           # Work type code from f_WT=2 in your URL
   indeed:
-    enabled: true
+    enabled: false
     search_limit: 100
   glassdoor:
-    enabled: true
+    enabled: false
     search_limit: 100
 
 # Browser Settings

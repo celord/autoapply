@@ -5,9 +5,9 @@ An automated job search and application tool that streamlines the job hunting pr
 ## Features
 
 - **Multi-Platform Support** — Automated job search across LinkedIn, Indeed, and Glassdoor
-- **Browser Automation** — Undetected Chrome driver for reliable web interaction
+- **Browser Automation** — Playwright-powered for reliable, modern browser automation
 - **Configurable Search** — YAML-based configuration for job titles, locations, and platform-specific settings
-- **Anti-Detection** — Uses `undetected-chromedriver` to bypass bot detection mechanisms
+- **Secure Cookie Login** — Logs into LinkedIn using your session cookie (li_at) for robust, headless authentication
 - **Structured Logging** — Detailed logging with Loguru for monitoring and debugging
 - **Test Coverage** — Comprehensive test suite with pytest for all platform integrations
 - **Modular Architecture** — Plugin-style platform system with a common base class
@@ -17,7 +17,7 @@ An automated job search and application tool that streamlines the job hunting pr
 | Component | Technology |
 |-----------|------------|
 | Language | Python 3.10+ |
-| Browser Automation | Selenium, undetected-chromedriver |
+| Browser Automation | Playwright |
 | HTML Parsing | BeautifulSoup4 |
 | Testing | pytest, pytest-cov |
 | Logging | Loguru |
@@ -68,17 +68,28 @@ search:
     - glassdoor
 ```
 
-Create a `.env` file with your platform credentials:
+#### LinkedIn Automation: Using the li_at Cookie
+
+For LinkedIn automation, you must provide your LinkedIn session cookie (`li_at`) in the `.env` file. Automation will log in using this cookie via Playwright.
+
+**How to get your `li_at` cookie:**
+1. Log in to LinkedIn in your browser.
+2. Open DevTools, find Application/Storage > Cookies for `www.linkedin.com`, and copy your `li_at` value.
+3. Place your cookie value in `.env` like this:
 
 ```env
-LINKEDIN_EMAIL=your_email
-LINKEDIN_PASSWORD=your_password
+li_at=YOUR_LI_AT_COOKIE_HERE
 ```
+
+> You do NOT need to provide LinkedIn email or password for automation.
+> If the session expires, refresh your cookie.
+
+If you need credentials for other platforms, add them to your `.env` as appropriate.
 
 ### 5. Run the Application
 
 ```bash
-python src/main.py
+python -m src.autoapply.main
 ```
 
 ## Project Structure
