@@ -10,7 +10,12 @@ import sys
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-import yaml
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    # Python < 3.11 fallback
+    import tomli as tomllib
 from loguru import logger
 from playwright.async_api import async_playwright
 import asyncio
@@ -33,16 +38,16 @@ class AutoJobFinder:
         self.platforms = {}
 
     def _load_config(self):
-        """Load configuration from YAML and environment variables."""
-        config_path = project_root / "config" / "config.yaml"
+        """Load configuration from TOML and environment variables."""
+        config_path = project_root / "config" / "config.toml"
         env_path = project_root / ".env"
 
         # Load environment variables
         load_dotenv(env_path)
 
-        # Load YAML config
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
+        # Load TOML config
+        with open(config_path, "rb") as f:
+            return tomllib.load(f)
 
     def setup_logging(self):
         """Configure logging settings."""
@@ -69,10 +74,10 @@ async def main():
             level="INFO",
             format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
         )
-        config_path = os.path.join("config", "config.yaml")
+        config_path = os.path.join("config", "config.toml")
         try:
-            with open(config_path, "r") as f:
-                config = yaml.safe_load(f)
+            with open(config_path, "rb") as f:
+                config = tomllib.load(f)
                 logger.info("Configuration loaded successfully")
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")

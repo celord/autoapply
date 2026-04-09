@@ -1,0 +1,51 @@
+# Job Search Configuration
+
+[search]
+keywords = "Python Developer"
+location = "Costa Rica"
+experience_level = "Entry Level"
+job_type = "Full-time"
+date_posted = "past_week"
+
+# Application Settings
+[application]
+apply_active = false
+max_applications_per_day = 50
+resume_path = "resumes/Cesar_Garcia_Resume.pdf"
+
+# Platform Settings
+[platforms.linkedin]
+enabled = true
+search_limit = 100
+query = "python"
+location = ""
+geo_id = "101739942"
+date_posted = "1"
+work_type = "2"
+
+[platforms.indeed]
+enabled = false
+search_limit = 100
+
+[platforms.glassdoor]
+enabled = false
+search_limit = 100
+
+# Browser Settings
+[browser]
+headless = false
+user_agent_rotation = true
+proxy_enabled = false
+
+# Timing Settings
+[delays]
+min_delay = 2
+max_delay = 5
+page_load_timeout = 30
+
+# Logging Settings
+[logging]
+level = "INFO"
+file_path = "logs/autojobfinder.log"
+max_file_size = 10
+backup_count = 5

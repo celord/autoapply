@@ -8,7 +8,12 @@ import sys
 import asyncio
 from pathlib import Path
 from datetime import datetime
-import yaml
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    # Python < 3.11 fallback
+    import tomli as tomllib
 from dotenv import load_dotenv
 from loguru import logger
 import pandas as pd
@@ -20,13 +25,13 @@ from autoapply.platforms.indeed import IndeedPlatform
 from autoapply.platforms.glassdoor import GlassdoorPlatform
 
 PROJECT_ROOT = Path(__file__).parent.parent
-CONFIG_PATH = PROJECT_ROOT / "config" / "config.yaml"
+CONFIG_PATH = PROJECT_ROOT / "config" / "config.toml"
 ENV_PATH = PROJECT_ROOT / ".env"
 
 
 def load_config():
-    with open(CONFIG_PATH, "r") as f:
-        return yaml.safe_load(f)
+    with open(CONFIG_PATH, "rb") as f:
+        return tomllib.load(f)
 
 
 def setup_logging(config):
