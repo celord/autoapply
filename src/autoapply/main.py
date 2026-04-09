@@ -137,6 +137,7 @@ async def main():
                         logger.info(f"Company: {job.company_name}")
                         logger.info(f"Type: {job.job_type or 'Not specified'}")
                         logger.info(f"Posted: {job.posted_date or 'Not specified'}")
+                        logger.info(f"Job Description: {job.description[:100] + '...' if job.description else 'N/A'}")
                         logger.info(f"Link: {job.link or 'N/A'}")
 
                     if config["application"]["apply_active"]:
