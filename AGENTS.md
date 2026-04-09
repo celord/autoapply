@@ -37,7 +37,8 @@
   - `src/autoapply/main.py` — current entry point, uses `AutoJobFinder` class and `playwright`
   - Verify which is being imported/used in your changes
 - **Plugins**: Each platform (`LinkedIn`, `Indeed`, `Glassdoor`) is in `src/autoapply/platforms/PLATFORM.py` with shared `base.py` interface
-- **Pydantic models**: Job postings are validated using `JobPosting` model in `src/autoapply/models.py`; use `job_converter.py` utilities to convert raw platform data
+- **Pydantic models**: Job postings are validated using `JobPosting` model in `src/autoapply/models.py`; all platforms' `search_jobs()` now return `List[JobPosting]`
+- **CSV export**: Use `src/autoapply/utils/csv_export.py` utilities (not pandas DataFrame) for consistent formatting across platforms
 - **Config drives everything** — platform selection, search parameters, delays, and logging all come from TOML; never hardcode these
 - **Async execution**: Playwright uses async (`async_playlist` context manager); tasks like `search_jobs()` and `apply_to_jobs()` are async
 - **TOML is read-only** via standard library — `tomllib.load()` only. Config edits must be done directly in `config.toml` or use external tools
@@ -65,7 +66,10 @@
 ## References
 
 - [README.md](README.md) — setup, credential extraction, and run commands
+- [PYDANTIC_MODELS.md](PYDANTIC_MODELS.md) — Pydantic model definitions and usage
+- [PLATFORM_INTEGRATION.md](PLATFORM_INTEGRATION.md) — platform scraper integration details
 - [`src/autoapply/utils/config_loader.py`](src/autoapply/utils/config_loader.py) — canonical required config fields (lines 58–78)
+- [`src/autoapply/utils/csv_export.py`](src/autoapply/utils/csv_export.py) — CSV export utilities
 - [`src/autoapply/main.py`](src/autoapply/main.py) — main application logic and `AutoJobFinder` class
 
 ---
