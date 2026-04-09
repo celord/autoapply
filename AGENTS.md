@@ -6,44 +6,64 @@
 
 ## Setup & Prerequisites
 
-- **Virtualenv required**: Always activate a virtual environment before installing dependencies. Packages are pinned in `requirements.txt`.
+- **Dependency manager**: `uv` (not pip). Dependencies are in `pyproject.toml`; `requirements.txt` is deprecated.
+- **Playwright browsers must be installed manually** after sync:
+  ```bash
+  uv sync
+  uv run -- python -m playwright install
+  ```
 - **Configuration is mandatory**:
-  - All main runs and tests require both:
-    - `config/config.yaml` (controls all search, apply, and platform behaviors)
-    - `.env` file (for credentials/secrets)
-  - If any required config section or key is missing, the code will fail to start (see `src/utils/config_loader.py` for required fields).
-- **Credentials**: `.env` file is required and must include at least LinkedIn credentials (see `README.md`).
-- **No initial code will work without valid config and .env, even for test runs.**
+  - Both required for any run (main, tests):
+    - `config/config.json` — all search, platform, browser, and logging settings
+    - `.env` — must contain `li_at=YOUR_LINKEDIN_COOKIE` (session cookie, not password)
+  - Required config sections: `search`, `application`, `platforms`, `browser`, `delays`, `logging`
+  - See `src/autoapply/utils/config_loader.py:58` for exact validation rules
+- **No initial code runs without valid config and .env.**
 
 ## How to Run
 
-- **Main entrypoint:** `python src/main.py` (always run from repository root).
-- Application logic lives in the `AutoJobFinder` class, but invoking `src/main.py` as a script is the canonical way.
-- Headless / non-headless browsing is toggled via `config/config.yaml` (`browser.headless`), NOT code flags.
-- Log output is written to the path specified in `config.yaml` under `logging.file_path` (directory is created if missing).
+- **Correct entrypoint**: `uv run -- python -m src.autoapply.main` (from repository root)
+  - Alternative: activate `.venv` and run `python -m src.autoapply.main`
+  - NOT `python src/main.py` or `python -m src.main` — these will not resolve imports correctly
+- **Browser mode**: Controlled via `config.json` (`browser.headless`), not code flags
+- **Logging**: Configured in `config.json` under `logging.file_path`; directory is auto-created
+- **CSV export**: Each run saves found jobs to `jobs_{platform}_{timestamp}.csv` in repository root
 
 ## Architecture Notes
 
-- **Plugins**: Each job platform (`LinkedIn`, `Indeed`, `Glassdoor`) is implemented in `src/platforms/PLATFORM.py`, using a shared base class.
-- **YAML config powers nearly all execution** – search targets, job types, and platform enablement all come from config, never hardcode or patch these in scripts.
-- **Tests**: Use pytest. Some tests rely on importing a valid config file; update config fixtures if you add/remove required config keys.
-- **No advanced infra (tox, Makefile, lockfile, monorepo, or extra orchestrator) exists. Use only README/requirements.txt guidance.**
+- **Two main.py files** (be careful not to confuse them):
+  - `src/main.py` — older entry point using `nodriver`; check if still active
+  - `src/autoapply/main.py` — current entry point, uses `AutoJobFinder` class and `playwright`
+  - Verify which is being imported/used in your changes
+- **Plugins**: Each platform (`LinkedIn`, `Indeed`, `Glassdoor`) is in `src/autoapply/platforms/PLATFORM.py` with shared `base.py` interface
+- **Config drives everything** — platform selection, search parameters, delays, and logging all come from YAML; never hardcode these
+- **Async execution**: Playwright uses async (`async_playlist` context manager); tasks like `search_jobs()` and `apply_to_jobs()` are async
+
+## Testing
+
+- **Pytest** with `pytest-cov` and `pytest-asyncio`
+- Run: `uv sync --extras test && uv run -- pytest --cov=src tests/`
+- Fixtures in `tests/conftest.py` — config fixtures likely need updating if you change required config keys
+- Tests may import `ConfigLoader`; verify config schema matches before running
 
 ## Style, Lint, and CI
 
-- No lint command, style checker, or pre-commit hooks are present. Adhere to PEP8 and repo conventions by inspection only.
-- Logging, error handling, and config validation are strict – follow patterns in `src/utils/logger.py` and `src/utils/config_loader.py` if making new modules.
+- No lint or formatter configured; follow PEP8 by inspection
+- Logging is strict: use patterns from `src/autoapply/utils/logger.py` for new modules
+- Error handling and config validation are strict; see `config_loader.py:48–78` for examples
 
 ## Other Quirks
 
-- **Do not trust any config that gets out of sync with executable logic.** Always defer to actual validation code in `src/utils/config_loader.py` and `src/main.py` if docs/config disagree.
-- No special task runner, script aliasing, or workspace setup beyond the above. Standard CLI only.
+- **Config validation is strict** — missing any required section or field raises `ValueError` before any execution
+- No Makefile, pre-commit hooks, or CI workflows; standard Python tooling only
+- `pyproject.toml` uses setuptools backend; packages are in `src` subdirectory
 
 ## References
 
-- [README.md](README.md) (primary usage & setup instructions)
-- [`src/utils/config_loader.py`](src/utils/config_loader.py) (canonical list of required config keys)
+- [README.md](README.md) — setup, credential extraction, and run commands
+- [`src/autoapply/utils/config_loader.py`](src/autoapply/utils/config_loader.py) — canonical required config fields (lines 58–78)
+- [`src/autoapply/main.py`](src/autoapply/main.py) — main application logic and `AutoJobFinder` class
 
 ---
 
-If in doubt, trace config and control/data flow via YAML/config-driven classes first, then verify with executable code. Avoid adding generic advice here.
+**Debugging tip**: If imports fail or config is not found, trace the working directory and Python path. Always run from repository root.
