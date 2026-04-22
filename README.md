@@ -6,7 +6,7 @@ An automated job search and extraction tool that streamlines the job hunting pro
 
 - **LinkedIn Automation** — Automated job search and extraction from LinkedIn
 - **Browser Automation** — Modern, Playwright-powered browser automation (Selenium fully removed)
-- **Configurable Search** — YAML-based search and platform configuration
+- **Configurable Search** — TOML-based search and platform configuration
 - **Cookie-based Login** — Log in to LinkedIn by providing your `li_at` session cookie in the `.env` file
 - **Logging** — Structured and robust log output for monitoring and debugging
 - **Extensible** — Clean, modular code structure to allow future additions or platform integrations
@@ -19,7 +19,7 @@ An automated job search and extraction tool that streamlines the job hunting pro
 | Browser Automation | Playwright         |
 | HTML Parsing       | (built-in, minimal)|
 | Logging            | Loguru             |
-| Configuration      | PyYAML, python-dotenv |
+| Configuration      | TOML (standard library), python-dotenv |
 | Dependency Manager | [uv](https://astral.sh/uv/) + pyproject.toml |
 
 ## LinkedIn Support Only
@@ -66,13 +66,18 @@ uv run -- python -m playwright install
 
 ### 5. Configure Settings
 
-Edit `config/config.yaml` with your job search preferences, for example:
-```yaml
-search:
-  job_title: "Software Engineer"
-  location: "Remote"
-  platforms:
-    - linkedin
+Edit `config/config.toml` with your job search preferences, for example:
+```toml
+[search]
+keywords = "Software Engineer"
+location = "Remote"
+experience_level = "Mid Level"
+job_type = "Full-time"
+date_posted = "past_week"
+
+[platforms.linkedin]
+enabled = true
+search_limit = 100
 ```
 
 #### LinkedIn Automation: Using the li_at Cookie
@@ -108,7 +113,7 @@ This will start the automated LinkedIn job search tool according to your setting
 ```
 autoapply/
 ├── config/
-│   └── config.yaml           # Search configuration
+│   └── config.toml           # Search configuration
 ├── src/
 │   ├── main.py               # Application entry point
 │   └── platforms/
