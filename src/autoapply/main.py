@@ -7,12 +7,14 @@ License: MIT
 
 import os
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 import yaml
 from loguru import logger
 from playwright.async_api import async_playwright
+from playwright._impl._api_structures import SetCookieParam
 import asyncio
 from autoapply.utils.config_loader import ConfigLoader
 from autoapply.utils.logger import setup_logger
@@ -20,6 +22,7 @@ from autoapply.platforms.linkedin import LinkedInPlatform
 from autoapply.platforms.indeed import IndeedPlatform
 from autoapply.platforms.glassdoor import GlassdoorPlatform
 import time
+
 
 project_root = Path(__file__).parent.parent
 
@@ -83,22 +86,18 @@ async def main():
             logger.error("li_at cookie not found in .env. Exiting.")
             sys.exit(1)
 
+        cookie = SetCookieParam(
+            name="li_at",
+            value=li_at,
+            domain=".linkedin.com",
+            path="/",
+        )
+
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=config["browser"]["headless"])
             context = await browser.new_context()
             # Inject LinkedIn li_at cookie
-            await context.add_cookies(
-                [
-                    {
-                        "name": "li_at",
-                        "value": li_at,
-                        "domain": ".linkedin.com",
-                        "path": "/",
-                        "httpOnly": True,
-                        "secure": True,
-                    }
-                ]
-            )
+            await context.add_cookies([cookie])
             page = await context.new_page()
 
             linkedin = LinkedInPlatform(page, config)
@@ -131,10 +130,9 @@ async def main():
                         logger.error(f"Error saving jobs to CSV: {e}")
                     for job in jobs:
                         logger.info("---")
-                        logger.info(f"Title: {job.get('title', 'N/A')}")
-                        logger.info(f"Company: {job.get('company', 'N/A')}")
-                        logger.info(f"Location: {job.get('location', 'N/A')}")
-                        logger.info(f"Link: {job.get('link', 'N/A')}")
+                        #dict comprehention to print all the key, values from each job
+                        logger.info({k: v for k, v in job.items()})
+
                     if config["application"]["apply_active"]:
                         try:
                             await linkedin.apply_to_jobs(jobs)

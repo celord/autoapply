@@ -7,17 +7,47 @@ from dotenv import load_dotenv
 
 import os
 
+TIMEOUT=4000
+
+# --- Helpers for robust field extraction ---
+async def safe_text(locator):
+    try:
+        item = locator.first
+        text = await item.inner_text(timeout=TIMEOUT)
+        return text.strip()
+    except Exception:
+        return None
+
+
+async def safe_attr(locator, attr):
+    try:
+        item = locator.first
+        return await item.get_attribute(attr, timeout=TIMEOUT)
+    except Exception:
+        return None
+
+
+async def safe_all(locator):
+    try:
+        items = await locator.all()
+        out = []
+        for e in items:
+            text = await e.inner_text(timeout=TIMEOUT)
+            if text and text.strip():
+                out.append(text.strip())
+        return out
+    except Exception:
+        return []
+
 
 class LinkedInPlatform(BasePlatform):
     def __init__(self, page, config: dict):
         super().__init__(page, config)
         self.page = page
         self.login_executed = False
-        super().__init__(self.tab, config)
         load_dotenv()
         # Fetch and inject the li_at cookie using Playwright's context.add_cookies at startup
         # user-data-dir that has been logged into LinkedIn manually. See documentation for instructions.
-        self.login_executed = False
 
     async def login(self) -> None:
         """
@@ -34,7 +64,7 @@ class LinkedInPlatform(BasePlatform):
         }
 
         await self.page.context.add_cookies([cookie_object])
-        await self.page.goto("https://www.linkedin.com/feed")
+        await self.page.goto("https://www.linkedin.com/")
         await asyncio.sleep(2)
         # Quick check: look for presence of user profile or login button
         if await self.page.query_selector(
@@ -68,102 +98,175 @@ class LinkedInPlatform(BasePlatform):
 
         await self.page.goto(url)
         await self.page.wait_for_timeout(4000)
-        # Find the main job cards list (no iframe in 2026)
-        # Wait for the true job results list based on latest xpath
-        await self.page.wait_for_selector(
-            "main div > div:nth-child(2) > div:nth-child(1) > div > ul > li"
-        )
-        list_locator = self.page.locator(
-            "main div > div:nth-child(2) > div:nth-child(1) > div > ul"
-        )
-        li_count = await list_locator.locator("li").count()
+        CARD_XPATH = "//li[@data-occludable-job-id]"
+        await self.page.wait_for_selector(f"xpath={CARD_XPATH}", timeout=TIMEOUT)
+        li_count = await self.page.locator(f"xpath={CARD_XPATH}").count()
         if li_count == 0:
             logger.error("No <li> elements found in the primary result list!")
             return []
         max_jobs = min(2, li_count)
         results = []
-        for idx in range(max_jobs):
-            li = list_locator.locator("li").nth(idx)
+        # Left side job list
+        card_count = min(
+            await self.page.locator(f"xpath={CARD_XPATH}").count(), max_jobs
+        )
+        for idx in range(card_count):
             try:
-                await li.scroll_into_view_if_needed()
-                # Robust title extraction
-                title, link, company = None, None, None
-                # Try typical selectors
-                card = None
-                if await li.locator(".base-card").count() > 0:
-                    card = li.locator(".base-card")
-                elif await li.locator(".job-search-card").count() > 0:
-                    card = li.locator(".job-search-card")
-                else:
-                    card = li  # fallback: operate on li itself
-                # Title
-                for selector in [
-                    ".base-search-card__title",
-                    ".job-search-card__title",
-                    "h3",
-                    "a",
-                    "span",
-                ]:
-                    if await card.locator(selector).count() > 0:
-                        title = await card.locator(selector).first.inner_text()
-                        logger.info(
-                            f"- Using selector '{selector}' for title: {title.strip()}"
-                        )
-                        break
-                # Link
-                for selector in [
-                    "a.base-card__full-link",
-                    "a.job-search-card__link",
-                    "a",
-                ]:
-                    if await card.locator(selector).count() > 0:
-                        link = await card.locator(selector).first.get_attribute("href")
-                        logger.info(f"- Using selector '{selector}' for link: {link}")
-                        break
-                # Company
-                for selector in [
-                    ".base-search-card__subtitle a",
-                    ".job-search-card__company-name",
-                    "h4 > a",
-                    "h4",
-                    "span",
-                ]:
-                    if await card.locator(selector).count() > 0:
-                        company = await card.locator(selector).first.inner_text()
-                        logger.info(
-                            f"- Using selector '{selector}' for company: {company.strip()}"
-                        )
-                        break
-                logger.info(f"Job li {idx + 1}: {title} @ {company} ({link})")
-                await li.click()
-                await self.page.wait_for_timeout(2000)
-                await self.page.wait_for_selector(
-                    ".jobs-details__main-content, .jobs-description__container"
-                )
-                detail_area = None
-                for sel in [
-                    ".jobs-details__main-content",
-                    ".jobs-description__container",
-                ]:
-                    elems = await self.page.query_selector_all(sel)
-                    if elems:
-                        detail_area = elems[0]
-                        break
-                if detail_area:
-                    main = await detail_area.inner_text()
-                    logger.info(f"Job {idx + 1} MAIN CONTENT:\n{main[:800]}\n---")
-                    results.append(
-                        {
-                            "title": (title or "").strip(),
-                            "company": (company or "").strip(),
-                            "link": link,
-                            "content": main,
-                        }
+                card = self.page.locator(f"xpath={CARD_XPATH}").nth(idx)
+                await card.scroll_into_view_if_needed(timeout=TIMEOUT)
+                # CARD PANEL FIELDS
+                jobId = await card.get_attribute("data-occludable-job-id")
+                cardTitle = await safe_text(
+                    card.locator(
+                        'xpath=.//a[contains(@class,"job-card-container__link")]//strong'
                     )
-                else:
-                    logger.warning(f"No detail area found for job #{idx + 1}.")
+                )
+                cardUrl = await safe_attr(
+                    card.locator(
+                        'xpath=.//a[contains(@class,"job-card-container__link")]'
+                    ),
+                    "href",
+                )
+                cardCompany = await safe_text(
+                    card.locator(
+                        'xpath=.//div[contains(@class,"artdeco-entity-lockup__subtitle")]//span[1]'
+                    )
+                )
+                cardLocation = await safe_text(
+                    card.locator(
+                        'xpath=.//ul[contains(@class,"job-card-container__metadata-wrapper")]//li[1]//span[1]'
+                    )
+                )
+                cardSalary = await safe_text(
+                    card.locator(
+                        'xpath=.//div[contains(@class,"artdeco-entity-lockup__metadata")]//li[1]//span[1]'
+                    )
+                )
+                cardFooterItems = await safe_all(
+                    card.locator(
+                        'xpath=.//ul[contains(@class,"job-card-list__footer-wrapper")]//li'
+                    )
+                )
+                logoUrl = await safe_attr(
+                    card.locator(
+                        'xpath=.//img[contains(@class,"job-card-list__logo")]'
+                    ),
+                    "src",
+                )
+                cardInsight = await safe_text(
+                    card.locator(
+                        'xpath=.//div[contains(@class,"job-card-container__job-insight-text")]'
+                    )
+                )
+
+                # CLICK INTO DETAIL PANEL
+                await card.click(timeout=TIMEOUT)
+                detail = self.page.locator(
+                    'xpath=//div[contains(@class,"jobs-search__job-details--wrapper")]'
+                ).last
+                await detail.wait_for(state="visible", timeout=TIMEOUT)
+                await self.page.wait_for_timeout(500)
+
+                # DETAIL PANEL FIELDS
+                detailTitle = await safe_text(
+                    detail.locator('xpath=.//h1[contains(@class,"t-24")] | .//h1')
+                )
+                detailCompany = await safe_text(
+                    detail.locator(
+                        'xpath=.//div[contains(@class,"job-details-jobs-unified-top-card__company-name")]//a | .//a[contains(@href,"/company/")]'
+                    )
+                )
+                detailCompanyUrl = await safe_attr(
+                    detail.locator(
+                        'xpath=.//div[contains(@class,"job-details-jobs-unified-top-card__company-name")]//a | .//a[contains(@href,"/company/")]'
+                    ),
+                    "href",
+                )
+                detailLocation = await safe_text(
+                    detail.locator(
+                        'xpath=.//div[contains(@class,"job-details-jobs-unified-top-card__tertiary-description-container")]//span[contains(@class,"tvm__text--low-emphasis")][1]'
+                    )
+                )
+                postedDate = await safe_text(
+                    detail.locator(
+                        'xpath=.//span[contains(@class,"tvm__text--positive")]'
+                    )
+                )
+                engagementItems = await safe_all(
+                    detail.locator(
+                        'xpath=.//div[contains(@class,"job-details-jobs-unified-top-card__tertiary-description-container")]//span[contains(@class,"tvm__text--low-emphasis")]'
+                    )
+                )
+                engagementClean = list({t for t in engagementItems if t != "·"})
+
+                tagButtons = await detail.locator(
+                    'xpath=.//div[contains(@class,"job-details-fit-level-preferences")]//button'
+                ).all()
+                tags = []
+                for btn in tagButtons:
+                    strong = btn.locator("xpath=.//strong")
+                    text = await safe_text(strong) or await safe_text(btn)
+                    if text:
+                        tags.append(text.split("\n")[0].strip())
+                salary = next((t for t in tags if "$" in t), None)
+                workType = [
+                    t for t in tags if t and ("$" not in t and "level" not in t.lower())
+                ]
+
+                descriptionText = await safe_text(
+                    detail.locator(
+                        'xpath=.//div[contains(@class,"jobs-description__content")]'
+                    )
+                )
+                try:
+                    descriptionHtml = await detail.locator(
+                        'xpath=.//div[contains(@class,"jobs-box__html-content")]'
+                    ).first.inner_html(timeout=TIMEOUT)
+                except Exception:
+                    descriptionHtml = None
+
+                isEasyApply = None
+                try:
+                    btn = detail.locator(
+                        'xpath=.//button[contains(@class,"jobs-apply-button")]'
+                    ).first
+                    label = (await btn.inner_text(timeout=TIMEOUT)).lower() if btn else ""
+                    isEasyApply = "easy apply" in label
+                except Exception:
+                    isEasyApply = None
+                externalApplyUrl = await safe_attr(
+                    detail.locator('xpath=.//a[contains(@class,"jobs-apply-button")]'),
+                    "href",
+                )
+
+                # Compose result
+                results.append(
+                    {
+                        "jobId": jobId,
+                        "url": cardUrl,
+                        "title": detailTitle or cardTitle,
+                        "company": detailCompany or cardCompany,
+                        "companyUrl": detailCompanyUrl,
+                        "companyLogo": logoUrl,
+                        "location": detailLocation or cardLocation,
+                        "postedDate": postedDate,
+                        "salary": salary or cardSalary,
+                        "workplaceType": workType,
+                        "allTags": tags,
+                        "engagement": engagementClean,
+                        "isEasyApply": isEasyApply,
+                        "externalApplyUrl": externalApplyUrl,
+                        "cardInsight": cardInsight,
+                        "cardFooterItems": cardFooterItems,
+                        "descriptionText": descriptionText,
+                    }
+                )
+                logger.info(
+                    f"[{idx + 1}/{card_count}] scraped: {(detailTitle or cardTitle)}"
+                )
             except Exception as exc:
                 logger.warning(f"Could not process li #{idx + 1}: {exc}")
+        # Ensure consistent output and schema matching
         return results
 
     async def apply_to_jobs(self, jobs: List[Dict[str, Any]]) -> int:
