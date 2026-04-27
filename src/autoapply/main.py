@@ -11,7 +11,6 @@ from collections.abc import Sequence
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-import yaml
 from loguru import logger
 from playwright.async_api import async_playwright
 from playwright._impl._api_structures import SetCookieParam
@@ -24,7 +23,7 @@ from autoapply.platforms.glassdoor import GlassdoorPlatform
 import time
 
 
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).resolve().parents[2]
 
 
 class AutoJobFinder:
@@ -36,16 +35,12 @@ class AutoJobFinder:
         self.platforms = {}
 
     def _load_config(self):
-        """Load configuration from YAML and environment variables."""
-        config_path = project_root / "config" / "config.yaml"
+        """Load configuration from TOML and environment variables."""
+        config_path = project_root / "config" / "config.toml"
         env_path = project_root / ".env"
 
-        # Load environment variables
         load_dotenv(env_path)
-
-        # Load YAML config
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
+        return ConfigLoader(config_path).config
 
     def setup_logging(self):
         """Configure logging settings."""
@@ -64,22 +59,8 @@ class AutoJobFinder:
 async def main():
     """Main function to run the job search with Playwright."""
     try:
-        load_dotenv()
-        os.makedirs("logs", exist_ok=True)
-        logger.add(
-            "logs/job_search_{time}.log",
-            rotation="1 day",
-            level="INFO",
-            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
-        )
-        config_path = os.path.join("config", "config.yaml")
-        try:
-            with open(config_path, "r") as f:
-                config = yaml.safe_load(f)
-                logger.info("Configuration loaded successfully")
-        except Exception as e:
-            logger.error(f"Error loading configuration: {e}")
-            raise
+        app = AutoJobFinder()
+        config = app.config
 
         li_at = os.getenv("li_at")
         if not li_at:
@@ -130,7 +111,7 @@ async def main():
                         logger.error(f"Error saving jobs to CSV: {e}")
                     for job in jobs:
                         logger.info("---")
-                        #dict comprehention to print all the key, values from each job
+                        # dict comprehention to print all the key, values from each job
                         logger.info({k: v for k, v in job.items()})
 
                     if config["application"]["apply_active"]:

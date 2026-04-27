@@ -2,7 +2,6 @@
 Test configuration loading functionality
 """
 
-import os
 from pathlib import Path
 import pytest
 from autoapply.utils.config_loader import ConfigLoader
@@ -11,7 +10,7 @@ from autoapply.utils.config_loader import ConfigLoader
 @pytest.fixture
 def config_path():
     """Fixture to provide the path to the config file."""
-    return Path(__file__).parent.parent / "config" / "config.yaml"
+    return Path(__file__).parent.parent / "config" / "config.toml"
 
 
 def test_config_loader_initialization(config_path):
